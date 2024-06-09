@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Calculator</title>
+    <style>
+        body {
+            background-color: #333;
+            color: white;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #444;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 400px;
+        }
+        h1 {
+            text-align: center;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+        .radio-group, .radio-group-inline {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .radio-group-inline label {
+            display: flex;
+            align-items: center;
+            margin-right: 10px;
+        }
+        .description {
+            font-size: 0.9em;
+            color: #ccc;
+            margin-bottom: 10px;
+        }
+        input, button, select {
+            width: calc(100% - 22px);
+            background-color: #555;
+            color: white;
+            border: 1px solid #666;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            cursor: pointer;
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+        }
+        @media (max-width: 480px) {
+            .container {
+                padding: 10px;
+            }
+            input, button, select {
+                padding: 8px;
+            }
+        }
+    </style>
+    <script>
+        function showBodyFatFields() {
+            const bodyFatKnown = document.querySelector('input[name="body-fat-known"]:checked').value;
+            if (bodyFatKnown === 'yes') {
+                document.getElementById('body-fat-percentage-field').style.display = 'block';
+                document.getElementById('neck-field').style.display = 'none';
+                document.getElementById('waist-field').style.display = 'none';
+                document.getElementById('hip-field').style.display = 'none';
+            } else {
+                document.getElementById('body-fat-percentage-field').style.display = 'none';
+                document.getElementById('neck-field').style.display = 'block';
+                document.getElementById('waist-field').style.display = 'block';
+                if (document.querySelector('input[name="gender"]:checked').value === 'female') {
+                    document.getElementById('hip-field').style.display = 'block';
+                }
+            }
+        }
+
+        function calculateBodyFat() {
+            const gender = document.querySelector('input[name="gender"]:checked').value;
+            const height = parseFloat(document.getElementById('height').value);
+            const weight = parseFloat(document.getElementById('weight').value);
+            const age = parseFloat(document.getElementById('age').value);
+            const activityFactor = parseFloat(document.getElementById('activity-factor').value);
+            const bodyFatKnown = document.querySelector('input[name="body-fat-known"]:checked').value;
+            
+            let bodyFat, lbm, fm, sex;
+
+            if (bodyFatKnown === 'yes') {
+                bodyFat = parseFloat(document.getElementById('body-fat-percentage').value);
+            } else {
+                const waist = parseFloat(document.getElementById('waist').value);
+                const neck = parseFloat(document.getElementById('neck').value);
+                
+                if (gender === 'male') {
+                    bodyFat = 495 / (1.0324 - 0.19077 * Math.log10(waist - neck) + 0.15456 * Math.log10(height)) - 450;
+                } else {
+                    const hip = parseFloat(document.getElementById('hip').value);
+                    bodyFat = 495 / (1.29579 - 0.35004 * Math.log10(waist + hip - neck) + 0.22100 * Math.log10(height)) - 450;
+                }
+            }
+
+            lbm = weight * (1 - bodyFat / 100);
+            fm = weight * (bodyFat / 100);
+            sex = gender === 'male' ? 1 : 0;
+
+            const bmr = (13.587 * lbm) + (9.613 * fm) + (198 * sex) - (3.351 * age) + 674;
+            const tdee = bmr * activityFactor;
+
+            const proteinGoal = 2 * lbm;
+            const carbGoal = (tdee - (proteinGoal * 4)) / 8;
+            const fatGoal = (tdee - (proteinGoal * 4)) / 18;
+
+            document.getElementById('result').innerHTML = `
+                <em>You may screenshot this info to track your progress.</em><br><br>
+                <strong>Here is your current status:</strong><br>
+                Body Weight: ${weight.toFixed(1)} kg<br>
+                Body Fat Percentage: ${bodyFat.toFixed(1)}%<br>
+                Fat Mass: ${fm.toFixed(1)} kg<br>
+                Lean Body Mass: ${lbm.toFixed(1)} kg<br><br>
+                <strong>Here is your estimated maintenance calories:</strong><br>
+                Maintenance Calories: ${tdee.toFixed(1)} calories/day<br>
+                Protein Goal: ${proteinGoal.toFixed(1)} g/day<br>
+                Carb Goal: ${carbGoal.toFixed(1)} g/day<br>
+                Fat Goal: ${fatGoal.toFixed(1)} g/day<br><br>
+                <em>Note: The above displayed information is for a balanced diet. It is highly recommended to review your estimated maintenance calories every week.<br>
+                Check your status every Sunday, after you wake up and using the toilet.</em>
+            `;
+            return false; // Prevent form submission
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('input[name="gender"]').forEach((input) => {
+                input.addEventListener('change', () => {
+                    if (document.querySelector('input[name="body-fat-known"]:checked').value === 'no') {
+                        const hipInput = document.getElementById('hip-field');
+                        if (document.querySelector('input[name="gender"]:checked').value === 'female') {
+                            hipInput.style.display = 'block';
+                        } else {
+                            hipInput.style.display = 'none';
+                        }
+                    }
+                });
+            });
+
+            document.querySelectorAll('input[name="body-fat-known"]').forEach((input) => {
+                input.addEventListener('change', showBodyFatFields);
+            });
+
+            showBodyFatFields();
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Ultimate Calculator</h1>
+        <form onsubmit="return calculateBodyFat();">
+            <p>
+                <label for="height">Height (cm):</label>
+                <input type="number" id="height" step="0.1" required>
+            </p>
+            <p>
+                <label for="weight">Weight (kg):</label>
+                <input type="number" id="weight" step="0.1" required>
+            </p>
+            <p>
+                <label for="age">Age:</label>
+                <input type="number" id="age" step="0.1" required>
+            </p>
+            <p>
+                <label>Sex:</label>
+                <div class="radio-group-inline">
+                    <label>
+                        Male
+                        <input type="radio" name="gender" value="male" checked>
+                    </label>
+                    <label>
+                        Female
+                        <input type="radio" name="gender" value="female">
+                    </label>
+                </div>
+            </p>
+            <p>
+                <label for="activity-factor">Activity Factor:</label>
+                <span class="description">Select your activity level based on your exercise routine.</span>
+                <select id="activity-factor" required>
+                    <option value="" disabled selected>Select your activity level</option>
+                    <option value="1.2">Sedentary (little or no exercise)</option>
+                    <option value="1.375">Lightly active (light exercise/sports 1-3 days/week)</option>
+                    <option value="1.55">Moderately active (moderate exercise/sports 3-5 days/week)</option>
+                    <option value="1.725">Very active (hard exercise/sports 6-7 days a week)</option>
+                </select>
+            </p>
+            <p>
+                <label>Do you know your body fat percentage?</label>
+                <div class="radio-group-inline">
+                    <label>
+                        Yes
+                        <input type="radio" name="body-fat-known" value="yes" onchange="showBodyFatFields()">
+                    </label>
+                    <label>
+                        No
+                        <input type="radio" name="body-fat-known" value="no" checked onchange="showBodyFatFields()">
+                    </label>
+                </div>
+            </p>
+            <p id="body-fat-percentage-field" style="display: none;">
+                <label for="body-fat-percentage">Body Fat Percentage (%):</label>
+                <input type="number" id="body-fat-percentage" step="0.1">
+            </p>
+            <p id="neck-field">
+                <label for="neck">Neck (cm):</label>
+                <span class="description">Neck measurement - Measured from just under the larynx.</span>
+                <input type="number" id="neck" step="0.1">
+            </p>
+            <p id="waist-field">
+                <label for="waist">Waist (cm):</label>
+                <span class="description">Waist measurement - If you're male, measure from around the navel. If you're female, measure around the narrowest part of the waist.</span>
+                <input type="number" id="waist" step="0.1">
+            </p>
+            <p id="hip-field" style="display: none;">
+                <label for="hip">Hip (cm):</label>
+                <span class="description">Hip measurement - Measure around the widest part of the buttock or hip.</span>
+                <input type="number" id="hip" step="0.1">
+            </p>
+            <p>
+                <button type="submit">Calculate</button>
+            </p>
+        </form>
+        <p id="result"></p>
+    </div>
+</body>
+</html>
